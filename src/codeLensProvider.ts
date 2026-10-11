@@ -56,6 +56,14 @@ export class DenoteCodeLensProvider implements vscode.CodeLensProvider {
   }
 }
 
+// Pre-0.2 CodeLens command IDs, mapped to their `denote.cell.*` equivalents.
+const LEGACY_LENS_COMMANDS: Record<string, string> = {
+  "denote.runCell": "denote.cell.run",
+  "denote.runAllCells": "denote.cell.runAll",
+  "denote.runAllCellsAbove": "denote.cell.runAbove",
+  "denote.runAllCellsBelow": "denote.cell.runBelow",
+};
+
 function createLens(
   command: string,
   uri: vscode.Uri,
@@ -63,21 +71,22 @@ function createLens(
   isFirst: boolean,
   range: vscode.Range,
 ): vscode.CodeLens | undefined {
-  switch (command) {
-    case "denote.runCell":
-      return new vscode.CodeLens(range, { title: "$(play) Run Cell", command, arguments: [uri, line] });
-    case "denote.runAllCells":
+  const id = LEGACY_LENS_COMMANDS[command] ?? command;
+  switch (id) {
+    case "denote.cell.run":
+      return new vscode.CodeLens(range, { title: "$(play) Run Cell", command: id, arguments: [uri, line] });
+    case "denote.cell.runAll":
       return isFirst
-        ? new vscode.CodeLens(range, { title: "$(run-all) Run All Cells", command, arguments: [uri] })
+        ? new vscode.CodeLens(range, { title: "$(run-all) Run All Cells", command: id, arguments: [uri] })
         : undefined;
-    case "denote.runAllCellsAbove":
+    case "denote.cell.runAbove":
       return new vscode.CodeLens(range, {
         title: isFirst ? "$(run-all) Run All Cells" : "$(arrow-up) Run Above",
-        command: isFirst ? "denote.runAllCells" : command,
+        command: isFirst ? "denote.cell.runAll" : id,
         arguments: isFirst ? [uri] : [uri, line],
       });
-    case "denote.runAllCellsBelow":
-      return new vscode.CodeLens(range, { title: "$(arrow-down) Run Below", command, arguments: [uri, line] });
+    case "denote.cell.runBelow":
+      return new vscode.CodeLens(range, { title: "$(arrow-down) Run Below", command: id, arguments: [uri, line] });
     default:
       return undefined;
   }

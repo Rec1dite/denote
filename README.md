@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/Rec1dite/denote/refs/heads/master/docs/denoteLogo.png" alt="Denote" width="160" />
 </p>
 
-# Denote
+# [Denote](https://rec1dite.github.io/denote/)
 
 An **interactive window for JavaScript / TypeScript** in VSCode, powered directly by the
 [Deno built-in Jupyter kernel](https://docs.deno.com/runtime/reference/cli/jupyter/)
@@ -15,6 +15,10 @@ swaps the Python kernel for Deno's, and drives the kernel itself.
 
 - `// %%` code cells and `/* %% [markdown] … */` markdown cells, with in-editor cell borders.
 - CodeLens: **Run Cell**, **Run Above**, **Run All Cells**, **Run Below**.
+- `denote.cell.*` commands (next / previous / first / last / insert / delete / run) with
+  `when`-clause context keys (`denote.hasCells`, `denote.inCell`, `denote.cellType`,
+  `denote.cellIndex`, `denote.cellCount`, `denote.isFirstCell`, `denote.isLastCell`) for custom
+  keybindings.
 - `Ctrl+Enter` / `Shift+Enter` to run the current cell (and advance).
 - One interactive window per source file, reused across runs; kernel state persists across cells.
 - Run Selection/Line in the interactive window.
@@ -66,3 +70,9 @@ npm run package   # produces denote-<version>.vsix
 - deno lsp `semantictokens/full` noise for iw virtual cell uris (upstream vs code behaviour).
 - `mxsdev.typescript-explorer` crashes its ts plugin on notebook cell uris (third-party bug,
   unrelated to denote).
+
+
+## Contribution
+
+This project is fully open-source via the MIT license. \
+Feature requests, bug reports, and PRs are welcome.

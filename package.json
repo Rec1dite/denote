@@ -34,69 +34,89 @@
     ],
     "commands": [
       {
-        "command": "denote.runCell",
+        "command": "denote.cell.run",
         "title": "Denote: Run Cell"
       },
       {
-        "command": "denote.runCellAndAdvance",
+        "command": "denote.cell.runAndAdvance",
         "title": "Denote: Run Cell and Advance"
       },
       {
-        "command": "denote.execSelectionInInteractive",
+        "command": "denote.cell.runSelection",
         "title": "Denote: Run Selection/Line in Interactive Window"
       },
       {
-        "command": "denote.insertCellBelow",
-        "title": "Denote: Insert Cell Below"
-      },
-      {
-        "command": "denote.insertCellAbove",
-        "title": "Denote: Insert Cell Above"
-      },
-      {
-        "command": "denote.runAllCells",
+        "command": "denote.cell.runAll",
         "title": "Denote: Run All Cells"
       },
       {
-        "command": "denote.runAllCellsAbove",
-        "title": "Denote: Run All Cells Above"
+        "command": "denote.cell.runAbove",
+        "title": "Denote: Run Cells Above"
       },
       {
-        "command": "denote.runAllCellsBelow",
-        "title": "Denote: Run All Cells Below"
+        "command": "denote.cell.runBelow",
+        "title": "Denote: Run Cells Below"
       },
       {
-        "command": "denote.clearAllCells",
+        "command": "denote.cell.insertAbove",
+        "title": "Denote: Insert Cell Above"
+      },
+      {
+        "command": "denote.cell.insertBelow",
+        "title": "Denote: Insert Cell Below"
+      },
+      {
+        "command": "denote.cell.delete",
+        "title": "Denote: Delete Cell"
+      },
+      {
+        "command": "denote.cell.next",
+        "title": "Denote: Go to Next Cell"
+      },
+      {
+        "command": "denote.cell.previous",
+        "title": "Denote: Go to Previous Cell"
+      },
+      {
+        "command": "denote.cell.first",
+        "title": "Denote: Go to First Cell"
+      },
+      {
+        "command": "denote.cell.last",
+        "title": "Denote: Go to Last Cell"
+      },
+      {
+        "command": "denote.interactive.clear",
         "title": "Clear All",
         "category": "Denote",
         "icon": "$(clear-all)"
       },
       {
-        "command": "denote.restartKernel",
+        "command": "denote.interactive.restart",
         "title": "Restart",
         "category": "Denote",
         "icon": "$(refresh)"
       },
       {
-        "command": "denote.exportAsNotebook",
+        "command": "denote.interactive.save",
         "title": "Save",
         "category": "Denote",
         "icon": "$(save)"
       },
       {
-        "command": "denote.export",
+        "command": "denote.interactive.export",
         "title": "Export",
         "category": "Denote",
         "icon": "$(export)"
       },
       {
-        "command": "denote.expandAllCells",
+        "command": "denote.interactive.expandAll",
         "title": "Expand",
         "category": "Denote",
         "icon": "$(expand-all)"
       },
       {
-        "command": "denote.collapseAllCells",
+        "command": "denote.interactive.collapseAll",
         "title": "Collapse",
         "category": "Denote",
         "icon": "$(collapse-all)"
@@ -105,39 +125,39 @@
     "menus": {
       "editor/context": [
         {
-          "command": "denote.execSelectionInInteractive",
+          "command": "denote.cell.runSelection",
           "when": "editorHasSelection && editorLangId =~ /javascript|typescript/",
           "group": "denote@1"
         }
       ],
       "interactive/toolbar": [
         {
-          "command": "denote.clearAllCells",
+          "command": "denote.interactive.clear",
           "when": "notebookKernel =~ /^denote\\.denote\\// && isWorkspaceTrusted",
           "group": "navigation@0"
         },
         {
-          "command": "denote.restartKernel",
+          "command": "denote.interactive.restart",
           "when": "notebookKernel =~ /^denote\\.denote\\// && isWorkspaceTrusted",
           "group": "navigation@1"
         },
         {
-          "command": "denote.exportAsNotebook",
+          "command": "denote.interactive.save",
           "when": "notebookKernel =~ /^denote\\.denote\\// && isWorkspaceTrusted",
           "group": "navigation@4"
         },
         {
-          "command": "denote.export",
+          "command": "denote.interactive.export",
           "when": "notebookKernel =~ /^denote\\.denote\\// && isWorkspaceTrusted",
           "group": "navigation@5"
         },
         {
-          "command": "denote.expandAllCells",
+          "command": "denote.interactive.expandAll",
           "when": "notebookKernel =~ /^denote\\.denote\\// && isWorkspaceTrusted",
           "group": "navigation@6"
         },
         {
-          "command": "denote.collapseAllCells",
+          "command": "denote.interactive.collapseAll",
           "when": "notebookKernel =~ /^denote\\.denote\\// && isWorkspaceTrusted",
           "group": "navigation@7"
         }
@@ -145,12 +165,12 @@
     },
     "keybindings": [
       {
-        "command": "denote.runCell",
+        "command": "denote.cell.run",
         "key": "ctrl+enter",
         "when": "editorTextFocus && editorLangId =~ /javascript|typescript/ && !notebookEditorFocused"
       },
       {
-        "command": "denote.runCellAndAdvance",
+        "command": "denote.cell.runAndAdvance",
         "key": "shift+enter",
         "when": "editorTextFocus && editorLangId =~ /javascript|typescript/ && !notebookEditorFocused"
       }
@@ -191,8 +211,8 @@
         },
         "denote.codeLens.commands": {
           "type": "string",
-          "default": "denote.runCell, denote.runAllCellsAbove, denote.runAllCellsBelow",
-          "markdownDescription": "Comma-separated CodeLens commands to show, in order. Supported: `denote.runCell`, `denote.runAllCells`, `denote.runAllCellsAbove`, `denote.runAllCellsBelow`."
+          "default": "denote.cell.run, denote.cell.runAbove, denote.cell.runBelow",
+          "markdownDescription": "Comma-separated CodeLens commands to show, in order. Supported: `denote.cell.run`, `denote.cell.runAll`, `denote.cell.runAbove`, `denote.cell.runBelow`."
         },
         "denote.interactiveWindow.creationMode": {
           "type": "string",

@@ -41,7 +41,6 @@ function activeInteractiveNotebook(): vscode.NotebookDocument | undefined {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const hasCellsKey = "denote.hasCodeCells";
   const extensionId = context.extension.id;
 
   initConfig(context);
@@ -58,17 +57,39 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(kernelManager, controller, interactiveWindows, new Decorator());
 
+  // Publishes editor/cell state as `when`-clause context keys for keyboard customisation.
   function updateContext(editor: vscode.TextEditor | undefined) {
+    const set = (key: string, value: unknown) =>
+      vscode.commands.executeCommand("setContext", key, value);
     if (!editor || !isJsLang(editor.document)) {
-      vscode.commands.executeCommand("setContext", hasCellsKey, false);
+      set("denote.hasCells", false);
+      set("denote.hasCodeCells", false);
+      set("denote.cellCount", 0);
+      set("denote.inCell", false);
+      set("denote.cellType", "");
+      set("denote.cellIndex", -1);
+      set("denote.isFirstCell", false);
+      set("denote.isLastCell", false);
       return;
     }
-    const cells = getCellRanges(editor.document);
-    vscode.commands.executeCommand("setContext", hasCellsKey, cells.length > 0);
+    const document = editor.document;
+    const cells = getCellRanges(document);
+    const line = editor.selection.active.line;
+    const index = cells.findIndex((c) => line >= c.range.start.line && line <= c.range.end.line);
+    const cell = index >= 0 ? cells[index] : undefined;
+    set("denote.hasCells", cells.length > 0);
+    set("denote.hasCodeCells", cells.length > 0);
+    set("denote.cellCount", cells.length);
+    set("denote.inCell", index >= 0);
+    set("denote.cellType", cell ? cell.cellType : "");
+    set("denote.cellIndex", index);
+    set("denote.isFirstCell", index === 0);
+    set("denote.isLastCell", index >= 0 && index === cells.length - 1);
   }
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(updateContext),
+    vscode.window.onDidChangeTextEditorSelection((e) => updateContext(e.textEditor)),
     vscode.workspace.onDidChangeTextDocument((e) => {
       const editor = vscode.window.activeTextEditor;
       if (editor && e.document === editor.document) updateContext(editor);
@@ -114,6 +135,73 @@ export function activate(context: vscode.ExtensionContext) {
     return getCellRanges(document).find(
       (c) => line >= c.range.start.line && line <= c.range.end.line,
     );
+  }
+
+  // Move the cursor to the start of a cell. `next`/`previous` step from the cell at the cursor.
+  function focusCell(target: "next" | "previous" | "first" | "last"): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !isJsLang(editor.document)) return;
+    const document = editor.document;
+    const cells = getCellRanges(document);
+    if (cells.length === 0) return;
+    const line = editor.selection.active.line;
+    const inside = cells.findIndex((c) => line >= c.range.start.line && line <= c.range.end.line);
+    let index = -1;
+    if (target === "first") {
+      index = 0;
+    } else if (target === "last") {
+      index = cells.length - 1;
+    } else if (target === "next") {
+      index = inside >= 0 ? inside + 1 : cells.findIndex((c) => c.range.start.line > line);
+    } else if (inside >= 0) {
+      index = inside - 1;
+    } else {
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].range.start.line < line) index = i;
+      }
+    }
+    const cell = cells[index];
+    if (!cell) return;
+    const position = new vscode.Position(cell.range.start.line, 0);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(
+      new vscode.Range(position, position),
+      vscode.TextEditorRevealType.InCenterIfOutsideViewport,
+    );
+  }
+
+  // Full-line range for `startLine..endLine`, absorbing a neighbouring newline where possible.
+  function fullLineRange(
+    document: vscode.TextDocument,
+    startLine: number,
+    endLine: number,
+  ): vscode.Range {
+    if (endLine + 1 < document.lineCount) {
+      return new vscode.Range(startLine, 0, endLine + 1, 0);
+    }
+    if (startLine > 0) {
+      return new vscode.Range(
+        startLine - 1,
+        document.lineAt(startLine - 1).text.length,
+        endLine,
+        document.lineAt(endLine).text.length,
+      );
+    }
+    return new vscode.Range(startLine, 0, endLine, document.lineAt(endLine).text.length);
+  }
+
+  async function deleteCell(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !isJsLang(editor.document)) return;
+    const cell = cellAtLine(editor.document, editor.selection.active.line);
+    if (!cell) return;
+    const startLine = cell.range.start.line;
+    const range = fullLineRange(editor.document, startLine, cell.range.end.line);
+    if (!(await editor.edit((eb) => eb.delete(range)))) return;
+    const line = Math.min(startLine, Math.max(0, editor.document.lineCount - 1));
+    const position = new vscode.Position(line, 0);
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position));
   }
 
   async function runCell(uri: vscode.Uri | undefined, startLine: number | undefined) {
@@ -174,19 +262,30 @@ export function activate(context: vscode.ExtensionContext) {
     await vscode.window.showTextDocument(opened);
   }
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("denote.runCell", (uri?: vscode.Uri, startLine?: number) =>
-      runCell(uri, startLine),
-    ),
+  // `denote.cell.*` acts on cells in the source editor; `denote.interactive.*` on the window.
+  // Pre-0.2 command IDs stay registered as aliases so existing keybindings/settings keep working.
+  type CommandHandler = Parameters<typeof vscode.commands.registerCommand>[1];
+  function register(id: string, handler: CommandHandler, ...aliases: string[]): void {
+    for (const command of [id, ...aliases]) {
+      context.subscriptions.push(vscode.commands.registerCommand(command, handler));
+    }
+  }
 
-    vscode.commands.registerCommand("denote.runCellAndAdvance", async () => {
+  register(
+    "denote.cell.run",
+    (uri?: vscode.Uri, startLine?: number) => runCell(uri, startLine),
+    "denote.runCell",
+  );
+
+  register(
+    "denote.cell.runAndAdvance",
+    async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !isJsLang(editor.document)) return;
       const document = editor.document;
       const cell = cellAtLine(document, editor.selection.active.line);
       if (!cell) return;
       await executeCell(document, cell);
-
       const cells = getCellRanges(document);
       const next = cells.find((c) => c.range.start.line > cell.range.start.line);
       const position = next
@@ -194,9 +293,13 @@ export function activate(context: vscode.ExtensionContext) {
         : new vscode.Position(document.lineCount, 0);
       editor.selection = new vscode.Selection(position, position);
       editor.revealRange(new vscode.Range(position, position));
-    }),
+    },
+    "denote.runCellAndAdvance",
+  );
 
-    vscode.commands.registerCommand("denote.execSelectionInInteractive", async () => {
+  register(
+    "denote.cell.runSelection",
+    async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !isJsLang(editor.document)) return;
       const { document, selection } = editor;
@@ -209,61 +312,100 @@ export function activate(context: vscode.ExtensionContext) {
         document.languageId,
       );
       await controller.executeCell(notebookCell);
-    }),
+    },
+    "denote.execSelectionInInteractive",
+  );
 
-    vscode.commands.registerCommand("denote.runAllCells", async (uri?: vscode.Uri) => {
+  register(
+    "denote.cell.runAll",
+    async (uri?: vscode.Uri) => {
       const document = documentFor(uri);
       if (document) await runCells(document, () => true);
-    }),
+    },
+    "denote.runAllCells",
+  );
 
-    vscode.commands.registerCommand(
-      "denote.runAllCellsAbove",
-      async (uri?: vscode.Uri, startLine?: number) => {
-        const document = documentFor(uri);
-        if (document) await runCells(document, (cell) => cell.range.start.line < (startLine ?? 0));
-      },
-    ),
+  register(
+    "denote.cell.runAbove",
+    async (uri?: vscode.Uri, startLine?: number) => {
+      const document = documentFor(uri);
+      if (document) await runCells(document, (cell) => cell.range.start.line < (startLine ?? 0));
+    },
+    "denote.runAllCellsAbove",
+  );
 
-    vscode.commands.registerCommand(
-      "denote.runAllCellsBelow",
-      async (uri?: vscode.Uri, startLine?: number) => {
-        const document = documentFor(uri);
-        if (document) await runCells(document, (cell) => cell.range.start.line >= (startLine ?? 0));
-      },
-    ),
+  register(
+    "denote.cell.runBelow",
+    async (uri?: vscode.Uri, startLine?: number) => {
+      const document = documentFor(uri);
+      if (document) await runCells(document, (cell) => cell.range.start.line >= (startLine ?? 0));
+    },
+    "denote.runAllCellsBelow",
+  );
 
-    vscode.commands.registerCommand("denote.insertCellBelow", async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor || !isJsLang(editor.document)) return;
-      const line = editor.selection.active.line;
-      editor.edit((eb) => eb.insert(new vscode.Position(line + 1, 0), `${getConfig().defaultCellMarker}\n\n`));
-    }),
-
-    vscode.commands.registerCommand("denote.insertCellAbove", async () => {
+  register(
+    "denote.cell.insertAbove",
+    async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !isJsLang(editor.document)) return;
       const line = editor.selection.active.line;
       editor.edit((eb) => eb.insert(new vscode.Position(line, 0), `${getConfig().defaultCellMarker}\n\n`));
-    }),
+    },
+    "denote.insertCellAbove",
+  );
 
-    vscode.commands.registerCommand("denote.clearAllCells", clearAllCells),
+  register(
+    "denote.cell.insertBelow",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || !isJsLang(editor.document)) return;
+      const line = editor.selection.active.line;
+      editor.edit((eb) =>
+        eb.insert(new vscode.Position(line + 1, 0), `${getConfig().defaultCellMarker}\n\n`),
+      );
+    },
+    "denote.insertCellBelow",
+  );
 
-    vscode.commands.registerCommand("denote.restartKernel", async () => {
+  register("denote.cell.delete", deleteCell);
+
+  register("denote.cell.next", () => focusCell("next"));
+
+  register("denote.cell.previous", () => focusCell("previous"));
+
+  register("denote.cell.first", () => focusCell("first"));
+
+  register("denote.cell.last", () => focusCell("last"));
+
+  register("denote.interactive.clear", clearAllCells, "denote.clearAllCells");
+
+  register(
+    "denote.interactive.restart",
+    async () => {
       const notebook = activeInteractiveNotebook();
       if (notebook) await controller.restart(notebook);
-    }),
+    },
+    "denote.restartKernel",
+  );
 
-    vscode.commands.registerCommand("denote.export", () => exportInteractiveWindow(false)),
+  register(
+    "denote.interactive.save",
+    () => exportInteractiveWindow(true),
+    "denote.exportAsNotebook",
+  );
 
-    vscode.commands.registerCommand("denote.exportAsNotebook", () => exportInteractiveWindow(true)),
+  register("denote.interactive.export", () => exportInteractiveWindow(false), "denote.export");
 
-    vscode.commands.registerCommand("denote.expandAllCells", () =>
-      vscode.commands.executeCommand("notebook.cell.expandAllCellInputs"),
-    ),
+  register(
+    "denote.interactive.expandAll",
+    () => vscode.commands.executeCommand("notebook.cell.expandAllCellInputs"),
+    "denote.expandAllCells",
+  );
 
-    vscode.commands.registerCommand("denote.collapseAllCells", () =>
-      vscode.commands.executeCommand("notebook.cell.collapseAllCellInputs"),
-    ),
+  register(
+    "denote.interactive.collapseAll",
+    () => vscode.commands.executeCommand("notebook.cell.collapseAllCellInputs"),
+    "denote.collapseAllCells",
   );
 }
 

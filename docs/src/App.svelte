@@ -20,6 +20,7 @@
     { id: "install", label: "Install" },
     { id: "markers", label: "Cell markers" },
     { id: "running", label: "Running cells" },
+    { id: "commands", label: "Commands & keys" },
     { id: "interactive", label: "The interactive window" },
     { id: "output", label: "Rich output" },
     { id: "errors", label: "Errors & recovery" },
@@ -48,13 +49,39 @@
     ["denote.denoPath", '""', "Path to the <code>deno</code> executable. Empty uses the kernelspec or <code>~/.deno/bin/deno</code>."],
     ["denote.defaultCellMarker", "// %%", "Marker inserted by the Insert Cell commands."],
     ["denote.cellMarker.codeRegex", "^//\\s*%%", "Regex that identifies a code cell marker."],
-    ["denote.cellMarker.markdownRegex", "^//\\s*%%\\s*\\[markdown\\]", "Regex that identifies a markdown cell marker."],
+    ["denote.cellMarker.markdownRegex", "^/\\*\\s*%%\\s*\\[markdown\\]", "Regex that identifies a markdown cell opener (a <code>/* … */</code> block)."],
     ["denote.cellMarker.decorateCells", "currentCell", "<code>currentCell</code>, <code>allCells</code> or <code>none</code> cell borders."],
     ["denote.codeLens.enable", "true", "Show CodeLens actions above cells."],
-    ["denote.codeLens.commands", "denote.runCell, …", "Comma-separated CodeLens commands to show."],
+    ["denote.codeLens.commands", "denote.cell.run, …", "Comma-separated CodeLens commands to show."],
     ["denote.interactiveWindow.creationMode", "perFile", "<code>perFile</code>, <code>single</code> or <code>multiple</code> windows."],
     ["denote.interactiveWindow.viewColumn", "beside", "<code>beside</code>, <code>active</code> or <code>secondGroup</code>."],
     ["denote.trace", "false", "Mirror verbose Denote logs to the developer console."],
+  ];
+
+  const cellCommands = [
+    ["denote.cell.next", "Move the cursor to the next cell"],
+    ["denote.cell.previous", "Move to the previous cell"],
+    ["denote.cell.first", "Move to the first cell"],
+    ["denote.cell.last", "Move to the last cell"],
+    ["denote.cell.insertAbove", "Insert a new cell above"],
+    ["denote.cell.insertBelow", "Insert a new cell below"],
+    ["denote.cell.delete", "Delete the current cell"],
+    ["denote.cell.run", "Run the current cell"],
+    ["denote.cell.runAndAdvance", "Run the current cell and move to the next"],
+    ["denote.cell.runSelection", "Run the selection/line in the interactive window"],
+    ["denote.cell.runAll", "Run every cell"],
+    ["denote.cell.runAbove", "Run all cells above"],
+    ["denote.cell.runBelow", "Run all cells below"],
+  ];
+
+  const contextKeys = [
+    ["denote.hasCells", "The active file has at least one cell"],
+    ["denote.inCell", "The cursor is inside a cell"],
+    ["denote.cellType", "<code>code</code> or <code>markdown</code>"],
+    ["denote.cellIndex", "0-based index of the cell at the cursor (<code>-1</code> when none)"],
+    ["denote.cellCount", "Number of cells in the file"],
+    ["denote.isFirstCell", "The cursor is in the first cell"],
+    ["denote.isLastCell", "The cursor is in the last cell"],
   ];
 </script>
 
@@ -161,7 +188,38 @@
       </table>
     </Section>
 
-    <Section id="interactive" num="05" title="The interactive window">
+    <Section id="commands" num="05" title="Commands &amp; context keys">
+      <p>
+        Cell commands use a consistent <code>denote.cell.*</code> scheme (window actions use
+        <code>denote.interactive.*</code>), so they are easy to bind to shortcuts.
+      </p>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          {#each cellCommands as [name, desc]}
+            <tr><td><code>{name}</code></td><td>{desc}</td></tr>
+          {/each}
+        </tbody>
+      </table>
+      <p>Editor and cell state is published as <code>when</code>-clause context keys:</p>
+      <table>
+        <thead><tr><th>Context key</th><th>Meaning</th></tr></thead>
+        <tbody>
+          {#each contextKeys as [name, desc]}
+            <tr><td><code>{name}</code></td><td>{@html desc}</td></tr>
+          {/each}
+        </tbody>
+      </table>
+      <Callout>
+        <p>
+          For example, bind <code>alt+j</code> to <code>denote.cell.next</code> with
+          <code>when: denote.hasCells</code>, or gate <code>denote.cell.delete</code> with
+          <code>denote.isLastCell</code>.
+        </p>
+      </Callout>
+    </Section>
+
+    <Section id="interactive" num="06" title="The interactive window">
       <p>
         One interactive window is reused per source file, so repeated runs accumulate in the same
         session. The Deno kernel starts automatically on the first run and keeps its state between
@@ -184,7 +242,7 @@
       </div>
     </Section>
 
-    <Section id="output" num="06" title="Rich output">
+    <Section id="output" num="07" title="Rich output">
       <p>
         Anything the kernel sends as a display message is rendered: ANSI colours, images, HTML and
         Markdown. Because VSCode renders <code>\r</code> as a newline, progress bars update in
@@ -208,7 +266,7 @@
       <InteractiveCode lang="ts" code={s.markdown} lines={h.markdown.lines} outputs={o.markdown} />
     </Section>
 
-    <Section id="errors" num="07" title="Errors &amp; recovery">
+    <Section id="errors" num="08" title="Errors &amp; recovery">
       <p>
         Errors surface as notebook error outputs and following cells still run. A cell stuck on a
         pending <code>await</code> can be stopped with <strong>Interrupt</strong>, which restarts
@@ -217,7 +275,7 @@
       <InteractiveCode lang="ts" code={s.errors} lines={h.errors.lines} outputs={o.errors} />
     </Section>
 
-    <Section id="toolbar" num="08" title="Toolbar actions">
+    <Section id="toolbar" num="09" title="Toolbar actions">
       <p>The interactive-window toolbar is wired up for the Denote kernel:</p>
       <table>
         <thead><tr><th>Action</th><th>Description</th></tr></thead>
@@ -229,7 +287,7 @@
       </table>
     </Section>
 
-    <Section id="imports" num="09" title="Imports &amp; modules">
+    <Section id="imports" num="10" title="Imports &amp; modules">
       <p>
         The kernel runs with the owning file's directory as its working directory, so relative
         imports resolve exactly as they do with <code>deno run</code>.
@@ -238,7 +296,7 @@
       <InteractiveCode lang="ts" code={s.imports} lines={h.imports.lines} outputs={o.imports} />
     </Section>
 
-    <Section id="settings" num="10" title="Settings">
+    <Section id="settings" num="11" title="Settings">
       <p>Denote ships a full set of settings:</p>
       <table>
         <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
@@ -255,7 +313,7 @@
       <Code lang="json" code={s.settings} lines={h.settings.lines} />
     </Section>
 
-    <Section id="limits" num="11" title="Limitations">
+    <Section id="limits" num="12" title="Limitations">
       <Callout kind="warn">
         <p>
           Only <code>console.log</code> / <code>console.error</code> are captured as streams.
