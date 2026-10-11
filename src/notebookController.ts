@@ -11,11 +11,11 @@ import {
 
 export const DENO_CONTROLLER_ID = "deno-jupyter";
 
-// How long to coalesce/batch outputs before sending them to VS Code. Streaming 1000 lines as
+// How long to coalesce/batch outputs before sending them to VSCode. Streaming 1000 lines as
 // 1000 separate appendOutput round-trips is far too slow; batching keeps rendering fast.
 const FLUSH_INTERVAL_MS = 16;
 
-// Jupyter sends binary data (images, pdf) base64-encoded; VS Code renderers expect raw bytes.
+// Jupyter sends binary data (images, pdf) base64-encoded; VSCode renderers expect raw bytes.
 export const BINARY_MIME = /^image\/(?!svg\+xml)/;
 
 function toOutputItems(data: Record<string, unknown>): vscode.NotebookCellOutputItem[] {
@@ -173,7 +173,7 @@ class CellOutputSink {
 }
 
 // Registers a NotebookController for the `interactive` view type, mirroring vscode-jupyter's
-// VSCodeNotebookController: VS Code drives execution, we stream kernel output into the cell.
+// VSCodeNotebookController: VSCode drives execution, we stream kernel output into the cell.
 export class DenoKernelController implements vscode.Disposable {
   private readonly controller: vscode.NotebookController;
   private readonly activeExecutions = new Map<string, Set<AbortController>>();
@@ -242,7 +242,7 @@ export class DenoKernelController implements vscode.Disposable {
       execution = this.controller.createNotebookCellExecution(cell);
     } catch {
       // Our controller is not the selected kernel for this notebook (e.g. the user picked another
-      // controller); let VS Code run the cell through whichever controller is selected.
+      // controller); let VSCode run the cell through whichever controller is selected.
       await vscode.commands.executeCommand("notebook.cell.execute", {
         document: notebook.uri,
         ranges: [new vscode.NotebookRange(cell.index, cell.index + 1)],

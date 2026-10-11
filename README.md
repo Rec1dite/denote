@@ -1,6 +1,6 @@
 # Denote
 
-An **interactive window for JavaScript / TypeScript** in VS Code, powered directly by the
+An **interactive window for JavaScript / TypeScript** in VSCode, powered directly by the
 [Deno built-in Jupyter kernel](https://docs.deno.com/runtime/reference/cli/jupyter/)
 (`deno jupyter`) — no `ms-toolsai.jupyter` dependency.
 
@@ -22,7 +22,7 @@ swaps the Python kernel for Deno's, and drives the kernel itself.
 
 ## Requirements
 
-- VS Code 1.72+
+- VSCode 1.72+
 - [Deno](https://deno.com/) on your `PATH` (or the registered `deno` Jupyter kernelspec).
   Install the kernel once with `deno jupyter --install`.
 
@@ -44,7 +44,7 @@ Add `// %%` markers to split a file into cells, then run them from the CodeLens 
 ```sh
 npm install
 npm run compile
-# F5 in VS Code to launch the Extension Development Host
+# F5 in VSCode to launch the Extension Development Host
 ```
 
 ## Packaging
