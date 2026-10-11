@@ -1,0 +1,22 @@
+{
+  "name": "denote-docs",
+  "private": true,
+  "type": "module",
+  "description": "Documentation site for the Denote VSCode extension",
+  "scripts": {
+    "icons": "node scripts/icons.mjs",
+    "release": "node scripts/release.mjs",
+    "highlight": "node scripts/highlight.mjs",
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "watch": "rollup -c -w"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.24.0",
+    "rollup-plugin-svelte": "^7.2.2",
+    "shiki": "^4.5.0",
+    "svelte": "^4.2.19"
+  }
+}

@@ -1,0 +1,5 @@
+node_modules/
+build/
+src/highlighted.js
+src/icons.js
+src/release.js
