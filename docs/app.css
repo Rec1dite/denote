@@ -81,12 +81,12 @@ kbd {
 /* layout */
 .layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh;
 }
 @media (max-width: 900px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -95,6 +95,7 @@ kbd {
   top: 0;
   align-self: start;
   height: 100vh;
+  min-width: 0;
   overflow-y: auto;
   background: var(--crust);
   border-right: 1px solid var(--surface0);
@@ -114,6 +115,7 @@ kbd {
 }
 .brand img {
   width: 100%;
+  max-width: 100%;
   height: auto;
   display: block;
 }
@@ -142,7 +144,10 @@ kbd {
 }
 
 .main {
+  width: 100%;
   max-width: 960px;
+  min-width: 0;
+  margin-inline: auto;
   padding: 2.5rem 3rem 5rem;
 }
 @media (max-width: 900px) {
@@ -343,6 +348,7 @@ td {
   text-align: left;
   padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--surface0);
+  overflow-wrap: anywhere;
 }
 th {
   background: var(--mantle);

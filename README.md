@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Rec1dite/denote/refs/heads/master/docs/denoteLogo.svg" alt="Denote" width="160" />
+</p>
+
 # Denote
 
 An **interactive window for JavaScript / TypeScript** in VSCode, powered directly by the
