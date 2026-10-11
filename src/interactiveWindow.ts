@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as crypto from "crypto";
 import { DenoKernelController } from "./notebookController";
+import { getConfig } from "./config";
 
 export interface IInteractiveWindow {
   notebook: vscode.NotebookDocument;
@@ -9,12 +10,29 @@ export interface IInteractiveWindow {
   owner: vscode.Uri;
 }
 
-// Cells are inserted before the interactive input, which is always the last cell.
-function appendIndex(notebook: vscode.NotebookDocument): number {
-  return Math.max(0, notebook.cellCount - 1);
+// Cells are appended after existing ones; if the input cell is part of the document, insert before it.
+function appendIndex(iw: IInteractiveWindow): number {
+  const cells = iw.notebook.getCells();
+  const last = cells[cells.length - 1];
+  if (last && last.document.uri.toString() === iw.inputUri.toString()) {
+    return cells.length - 1;
+  }
+  return cells.length;
 }
 
-// Reuses one interactive window per source file, mirroring vscode-jupyter's InteractiveWindowProvider.
+function viewColumn(): vscode.ViewColumn {
+  switch (getConfig().viewColumn) {
+    case "active":
+      return vscode.ViewColumn.Active;
+    case "secondGroup":
+      return vscode.ViewColumn.Two;
+    default:
+      return vscode.ViewColumn.Beside;
+  }
+}
+
+// Reuses interactive windows according to `denote.interactiveWindow.creationMode`,
+// mirroring vscode-jupyter's InteractiveWindowProvider.
 export class InteractiveWindowProvider implements vscode.Disposable {
   private readonly windows = new Map<string, IInteractiveWindow>();
   private readonly disposables: vscode.Disposable[] = [];
@@ -37,8 +55,20 @@ export class InteractiveWindowProvider implements vscode.Disposable {
     );
   }
 
+  // `perFile` keys by the source file, `single` shares one key, `multiple` always gets a new key.
+  private keyFor(owner: vscode.Uri): string {
+    switch (getConfig().creationMode) {
+      case "single":
+        return "single";
+      case "multiple":
+        return `${owner.toString()}#${crypto.randomUUID()}`;
+      default:
+        return owner.toString();
+    }
+  }
+
   async getOrCreate(owner: vscode.Uri): Promise<IInteractiveWindow> {
-    const key = owner.toString();
+    const key = this.keyFor(owner);
     const existing = this.windows.get(key);
     if (existing) {
       this.log("reusing interactive window", existing.notebook.uri.toString());
@@ -49,7 +79,7 @@ export class InteractiveWindowProvider implements vscode.Disposable {
     this.log("opening interactive window, preferred controller:", preferredControllerId);
     const result = (await vscode.commands.executeCommand(
       "interactive.open",
-      { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
+      { viewColumn: viewColumn(), preserveFocus: true },
       undefined,
       preferredControllerId,
       path.basename(owner.fsPath) || "Deno",
@@ -72,7 +102,7 @@ export class InteractiveWindowProvider implements vscode.Disposable {
     return iw;
   }
 
-  // Strip the cell marker, insert the cell at the REPL append index, and return it.
+  // Insert the cell at the append index and return it.
   async addCode(
     code: string,
     owner: vscode.Uri,
@@ -81,7 +111,7 @@ export class InteractiveWindowProvider implements vscode.Disposable {
     isMarkdown = false,
   ): Promise<vscode.NotebookCell> {
     const iw = await this.getOrCreate(owner);
-    const index = appendIndex(iw.notebook);
+    const index = appendIndex(iw);
 
     const cellData = new vscode.NotebookCellData(
       isMarkdown ? vscode.NotebookCellKind.Markup : vscode.NotebookCellKind.Code,

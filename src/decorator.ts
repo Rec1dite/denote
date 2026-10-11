@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
-import { ICellRange, generateCellRangesFromDocument } from "./cellMatcher";
+import { generateCellRangesFromDocument } from "./cellMatcher";
+import { getConfig, onDidChangeConfig } from "./config";
 
-// In-editor cell borders, mirroring the Jupyter extension's Decorator:
-// the current cell gets an active border, other cells an inactive top border.
+// In-editor cell borders, mirroring the Jupyter extension's Decorator.
+// The current cell gets an active border, other cells an inactive top border.
 const JS_LANGUAGES = ["javascript", "typescript", "javascriptreact", "typescriptreact"];
 
 export class Decorator implements vscode.Disposable {
@@ -36,6 +37,7 @@ export class Decorator implements vscode.Disposable {
       this.currentCellTop,
       this.currentCellBottom,
       this.otherCellsTop,
+      onDidChangeConfig(() => this.scheduleUpdate()),
       vscode.window.onDidChangeActiveTextEditor(() => this.scheduleUpdate()),
       vscode.window.onDidChangeTextEditorSelection(() => this.scheduleUpdate()),
       vscode.workspace.onDidChangeTextDocument((e) => {
@@ -60,21 +62,40 @@ export class Decorator implements vscode.Disposable {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !JS_LANGUAGES.includes(editor.document.languageId)) return;
 
+    const config = getConfig();
+    if (config.decorateCells === "none") {
+      this.clear(editor);
+      return;
+    }
+
     const cells = generateCellRangesFromDocument(
       editor.document.lineCount,
       (i) => editor.document.lineAt(i).text,
+      config,
     );
 
-    const current = cells.find((c) => c.range.start.line <= editor.selection.active.line && editor.selection.active.line <= c.range.end.line);
-    const activeTop = current ? [rangeAt(current.range.start.line)] : [];
-    const activeBottom = current ? [rangeAt(current.range.end.line)] : [];
-    const otherTop = cells
-      .filter((c) => !current || c.range.start.line !== current.range.start.line)
-      .map((c) => rangeAt(c.range.start.line));
+    if (config.decorateCells === "allCells") {
+      editor.setDecorations(this.otherCellsTop, cells.map((c) => rangeAt(c.range.start.line)));
+      editor.setDecorations(this.currentCellTop, []);
+      editor.setDecorations(this.currentCellBottom, []);
+      return;
+    }
 
-    editor.setDecorations(this.currentCellTop, activeTop);
-    editor.setDecorations(this.currentCellBottom, activeBottom);
-    editor.setDecorations(this.otherCellsTop, otherTop);
+    const current = cells.find(
+      (c) => c.range.start.line <= editor.selection.active.line && editor.selection.active.line <= c.range.end.line,
+    );
+    editor.setDecorations(this.currentCellTop, current ? [rangeAt(current.range.start.line)] : []);
+    editor.setDecorations(this.currentCellBottom, current ? [rangeAt(current.range.end.line)] : []);
+    editor.setDecorations(
+      this.otherCellsTop,
+      cells.filter((c) => !current || c.range.start.line !== current.range.start.line).map((c) => rangeAt(c.range.start.line)),
+    );
+  }
+
+  private clear(editor: vscode.TextEditor) {
+    editor.setDecorations(this.currentCellTop, []);
+    editor.setDecorations(this.currentCellBottom, []);
+    editor.setDecorations(this.otherCellsTop, []);
   }
 }
 

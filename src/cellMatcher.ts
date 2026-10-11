@@ -1,38 +1,38 @@
-// Cell marker detection - mirrors Jupyter extension's CellMatcher
-// Detects `// %%` and `// %% [markdown]` cell boundaries
+// Cell marker detection, mirroring the Jupyter extension's CellMatcher.
+// Regexes and the default marker are configurable via `denote.cellMarker.*`.
 
-export const DEFAULT_CELL_MARKER = "// %%";
-export const CODE_CELL_REGEX = /^\/\/\s*%%/;
-export const MARKDOWN_CELL_REGEX = /^\/\/\s*%%\s*\[markdown\]/;
+export interface CellMarkerOptions {
+  codeRegex: RegExp;
+  markdownRegex: RegExp;
+  defaultCellMarker: string;
+}
 
 export interface ICellRange {
   range: { start: { line: number; character: number }; end: { line: number; character: number } };
   cellType: "code" | "markdown";
 }
 
-export function isCellLine(text: string): boolean {
-  return CODE_CELL_REGEX.test(text.trim());
+export function isMarkdownCell(text: string, options: CellMarkerOptions): boolean {
+  return options.markdownRegex.test(text.trim());
 }
 
-export function isMarkdownCell(text: string): boolean {
-  return MARKDOWN_CELL_REGEX.test(text.trim());
+export function isCellLine(text: string, options: CellMarkerOptions): boolean {
+  const trimmed = text.trim();
+  return options.codeRegex.test(trimmed) || trimmed === options.defaultCellMarker;
 }
 
-export function getCellType(text: string): "code" | "markdown" {
-  return isMarkdownCell(text) ? "markdown" : "code";
+export function getCellType(text: string, options: CellMarkerOptions): "code" | "markdown" {
+  return isMarkdownCell(text, options) ? "markdown" : "code";
 }
 
-export function getFirstMarker(code: string): string | undefined {
+export function getFirstMarker(code: string, options: CellMarkerOptions): string | undefined {
+  const first = code.split("\n")[0];
+  return first && isCellLine(first, options) ? first : undefined;
+}
+
+export function stripFirstMarker(code: string, options: CellMarkerOptions): string {
   const lines = code.split("\n");
-  if (lines.length > 0 && isCellLine(lines[0])) {
-    return lines[0];
-  }
-  return undefined;
-}
-
-export function stripFirstMarker(code: string): string {
-  const lines = code.split("\n");
-  if (lines.length > 0 && isCellLine(lines[0])) {
+  if (lines.length > 0 && isCellLine(lines[0], options)) {
     return lines.slice(1).join("\n");
   }
   return code;
@@ -41,11 +41,12 @@ export function stripFirstMarker(code: string): string {
 export function generateCellRangesFromDocument(
   lineCount: number,
   lineAt: (i: number) => string,
+  options: CellMarkerOptions,
 ): ICellRange[] {
   const cells: ICellRange[] = [];
   for (let i = 0; i < lineCount; i++) {
     const text = lineAt(i);
-    if (isCellLine(text)) {
+    if (isCellLine(text, options)) {
       if (cells.length > 0) {
         const prev = cells[cells.length - 1];
         prev.range.end = { line: i - 1, character: lineAt(i - 1).length };
@@ -55,7 +56,7 @@ export function generateCellRangesFromDocument(
           start: { line: i, character: 0 },
           end: { line: i, character: text.length },
         },
-        cellType: getCellType(text),
+        cellType: getCellType(text, options),
       });
     }
   }

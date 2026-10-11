@@ -5,7 +5,8 @@ import { startDevBridge } from "./devBridge";
 import { KernelManager } from "./kernelManager";
 import { DenoKernelController, BINARY_MIME } from "./notebookController";
 import { InteractiveWindowProvider } from "./interactiveWindow";
-import { generateCellRangesFromDocument, stripFirstMarker, DEFAULT_CELL_MARKER, ICellRange } from "./cellMatcher";
+import { initConfig, getConfig } from "./config";
+import { generateCellRangesFromDocument, stripFirstMarker, ICellRange } from "./cellMatcher";
 
 const JS_LANGS = ["javascript", "typescript", "javascriptreact", "typescriptreact"];
 
@@ -16,6 +17,7 @@ function log(...args: unknown[]) {
   const line = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
   logBuffer.push(line);
   outputChannel?.appendLine(line);
+  if (getConfig().trace) console.warn("[Denote]", ...args);
 }
 
 function isJsLang(document: vscode.TextDocument): boolean {
@@ -23,7 +25,8 @@ function isJsLang(document: vscode.TextDocument): boolean {
 }
 
 function getCellRanges(document: vscode.TextDocument): ICellRange[] {
-  return generateCellRangesFromDocument(document.lineCount, (i) => document.lineAt(i).text);
+  const config = getConfig();
+  return generateCellRangesFromDocument(document.lineCount, (i) => document.lineAt(i).text, config);
 }
 
 function cellCode(document: vscode.TextDocument, cell: ICellRange): string {
@@ -40,6 +43,8 @@ function activeInteractiveNotebook(): vscode.NotebookDocument | undefined {
 export function activate(context: vscode.ExtensionContext) {
   const hasCellsKey = "denote.hasCodeCells";
   const extensionId = context.extension.id;
+
+  initConfig(context);
 
   outputChannel = vscode.window.createOutputChannel("Denote");
   context.subscriptions.push(outputChannel);
@@ -90,7 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Insert a cell into the interactive window and run it through our controller.
   async function executeCell(document: vscode.TextDocument, cell: ICellRange): Promise<void> {
-    const code = stripFirstMarker(cellCode(document, cell));
+    const code = stripFirstMarker(cellCode(document, cell), getConfig());
     const notebookCell = await interactiveWindows.addCode(
       code,
       document.uri,
@@ -229,14 +234,14 @@ export function activate(context: vscode.ExtensionContext) {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !isJsLang(editor.document)) return;
       const line = editor.selection.active.line;
-      editor.edit((eb) => eb.insert(new vscode.Position(line + 1, 0), `${DEFAULT_CELL_MARKER}\n\n`));
+      editor.edit((eb) => eb.insert(new vscode.Position(line + 1, 0), `${getConfig().defaultCellMarker}\n\n`));
     }),
 
     vscode.commands.registerCommand("denote.insertCellAbove", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !isJsLang(editor.document)) return;
       const line = editor.selection.active.line;
-      editor.edit((eb) => eb.insert(new vscode.Position(line, 0), `${DEFAULT_CELL_MARKER}\n\n`));
+      editor.edit((eb) => eb.insert(new vscode.Position(line, 0), `${getConfig().defaultCellMarker}\n\n`));
     }),
 
     vscode.commands.registerCommand("denote.clearAllCells", clearAllCells),
@@ -332,12 +337,13 @@ export function serializeNotebook(notebook: vscode.NotebookDocument): string {
 }
 
 export function serializeSource(notebook: vscode.NotebookDocument): string {
+  const marker = getConfig().defaultCellMarker;
   return notebook
     .getCells()
     .map((cell) =>
       cell.kind === vscode.NotebookCellKind.Markup
-        ? `${DEFAULT_CELL_MARKER} [markdown]\n${cell.document.getText()}`
-        : `${DEFAULT_CELL_MARKER}\n${cell.document.getText()}`,
+        ? `${marker} [markdown]\n${cell.document.getText()}`
+        : `${marker}\n${cell.document.getText()}`,
     )
     .join("\n\n");
 }

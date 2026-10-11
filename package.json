@@ -6,7 +6,7 @@
   "publisher": "denote",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.72.0"
   },
   "categories": [
     "Notebooks",
@@ -151,6 +151,54 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Path to the `deno` executable used to start the Jupyter kernel. When empty, the registered `deno` kernelspec or `~/.deno/bin/deno` is used."
+        },
+        "denote.defaultCellMarker": {
+          "type": "string",
+          "default": "// %%",
+          "markdownDescription": "Marker inserted by the **Insert Cell Above/Below** commands."
+        },
+        "denote.cellMarker.codeRegex": {
+          "type": "string",
+          "default": "^//\\s*%%",
+          "markdownDescription": "Regular expression that identifies a **code** cell marker (matched against the trimmed line)."
+        },
+        "denote.cellMarker.markdownRegex": {
+          "type": "string",
+          "default": "^//\\s*%%\\s*\\[markdown\\]",
+          "markdownDescription": "Regular expression that identifies a **markdown** cell marker."
+        },
+        "denote.cellMarker.decorateCells": {
+          "type": "string",
+          "enum": ["currentCell", "allCells", "none"],
+          "default": "currentCell",
+          "markdownDescription": "Draw cell borders for the current cell only, for all cells, or not at all."
+        },
+        "denote.codeLens.enable": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show CodeLens actions above cells."
+        },
+        "denote.codeLens.commands": {
+          "type": "string",
+          "default": "denote.runCell, denote.runAllCellsAbove, denote.runAllCellsBelow",
+          "markdownDescription": "Comma-separated CodeLens commands to show, in order. Supported: `denote.runCell`, `denote.runAllCells`, `denote.runAllCellsAbove`, `denote.runAllCellsBelow`."
+        },
+        "denote.interactiveWindow.creationMode": {
+          "type": "string",
+          "enum": ["perFile", "single", "multiple"],
+          "default": "perFile",
+          "markdownDescription": "`perFile` reuses one interactive window per source file; `single` shares one window for every file; `multiple` opens a new window for each run."
+        },
+        "denote.interactiveWindow.viewColumn": {
+          "type": "string",
+          "enum": ["beside", "active", "secondGroup"],
+          "default": "beside",
+          "markdownDescription": "Where a new interactive window is opened."
+        },
+        "denote.trace": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Log verbose Denote diagnostics to the **Denote** output channel."
         }
       }
     }
@@ -164,7 +212,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "@types/vscode": "^1.59.0",
+    "@types/vscode": "1.72.0",
     "@vscode/vsce": "^3.9.2",
     "typescript": "^7.0.2"
   },
