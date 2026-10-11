@@ -2,7 +2,7 @@
   "name": "denote",
   "displayName": "Denote",
   "description": "Interactive window for JavaScript/TypeScript using the Deno Jupyter kernel, with `// %%` cell markers",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "denote",
   "license": "MIT",
   "icon": "icon.png",

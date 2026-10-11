@@ -18,14 +18,12 @@ export class KernelManager implements vscode.Disposable {
     );
   }
 
-  // Prefer the directory of the source file that produced the IW cell, so relative imports resolve.
+  // The kernel runs with the owning source file's directory as its cwd, so relative imports
+  // resolve exactly as they do with `deno run`.
   private kernelCwd(notebook: vscode.NotebookDocument): string {
     for (const cell of notebook.getCells()) {
       const uri = (cell.metadata as { interactive?: { uristring?: string } })?.interactive?.uristring;
-      if (uri) {
-        const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri));
-        return folder?.uri.fsPath ?? path.dirname(vscode.Uri.parse(uri).fsPath);
-      }
+      if (uri) return path.dirname(vscode.Uri.parse(uri).fsPath);
     }
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
   }
