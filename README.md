@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Rec1dite/denote/refs/heads/master/docs/denoteLogo.svg" alt="Denote" width="160" />
+  <img src="https://raw.githubusercontent.com/Rec1dite/denote/refs/heads/master/docs/denoteLogo.png" alt="Denote" width="160" />
 </p>
 
 # Denote
