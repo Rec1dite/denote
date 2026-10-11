@@ -9,9 +9,10 @@ export const markers = join([
   "for (let i = 0; i < 10; i++) y += i;",
   'console.log("y = " + y);',
   "",
-  "// %% [markdown]",
+  "/* %% [markdown]",
   "# Notes",
   "Cells can be **markdown** too.",
+  "*/",
 ]);
 
 export const runCell = join([
@@ -84,7 +85,7 @@ export const html = join([
   "// %%",
   "Deno.jupyter.html`<svg width=\"240\" height=\"80\">",
   '  <rect width="240" height="80" fill="#1f6feb"/>',
-  '  <text x="12" y="48" fill="white" font-size="24">Hello IW</text>',
+  '  <text x="12" y="48" fill="white" font-size="24">Hello Deno</text>',
   "</svg>`;",
 ]);
 

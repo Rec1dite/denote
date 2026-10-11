@@ -13,7 +13,7 @@ swaps the Python kernel for Deno's, and drives the kernel itself.
 
 ## Features
 
-- `// %%` and `// %% [markdown]` cell markers with in-editor cell borders.
+- `// %%` code cells and `/* %% [markdown] … */` markdown cells, with in-editor cell borders.
 - CodeLens: **Run Cell**, **Run Above**, **Run All Cells**, **Run Below**.
 - `Ctrl+Enter` / `Shift+Enter` to run the current cell (and advance).
 - One interactive window per source file, reused across runs; kernel state persists across cells.

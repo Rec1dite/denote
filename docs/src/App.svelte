@@ -82,6 +82,9 @@
           <li>
             Split a file into cells with <code>// %%</code>, run them with a click or a keystroke, and keep state between cells.
           </li>
+          <li>
+            Heavily inspired by Microsoft's <a href="https://github.com/microsoft/vscode-jupyter"><code>vscode-jupyter</code></a> extension which implements similar features for Python.
+          </li>
         </ul>
       <div class="cta">
         <a class="btn primary" href="#install">Get started</a>
@@ -127,9 +130,10 @@
 
     <Section id="markers" num="03" title="Cell markers">
       <p>
-        Mark cells with a comment that starts with <code>// %%</code>. Add
-        <code>[markdown]</code> to make a cell render as markdown. Cell boundaries get an
-        in-editor border, and each cell gets a CodeLens. Try the buttons above each marker.
+        Mark cells with a comment that starts with <code>// %%</code>. Wrap prose in a
+        <code>/* %% [markdown] … */</code> block to make a cell render as markdown — since it is a
+        block comment, TypeScript stays quiet. Cell boundaries get an in-editor border, and each cell
+        gets a CodeLens. Try the buttons above each marker.
       </p>
       <InteractiveCode lang="ts" code={s.markers} lines={h.markers.lines} outputs={o.markers} />
       <Callout>

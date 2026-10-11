@@ -11,31 +11,49 @@ import { writeIfChanged } from "./write.mjs";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const LANG_BY_KEY = { install: "bash", settings: "json" };
+const THEME = "catppuccin-mocha";
+const MARKDOWN_OPEN = /^\s*\/\*\s*%%\s*\[markdown\]/;
+const MARKDOWN_CLOSE = /^\s*\*\/\s*$/;
 
 function escapeHtml(value) {
   return value.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 }
 
+function lineHtml(tokens) {
+  return tokens.map((t) => `<span style="color:${t.color}">${escapeHtml(t.content)}</span>`).join("");
+}
+
 const highlighter = await createHighlighter({
-  themes: ["catppuccin-mocha"],
-  langs: ["typescript", "javascript", "json", "bash"],
+  themes: [THEME],
+  langs: ["typescript", "javascript", "json", "bash", "markdown"],
 });
 
 const highlighted = {};
 for (const [key, code] of Object.entries(snippets)) {
   const lang = LANG_BY_KEY[key] ?? "typescript";
+  const rawLines = code.split("\n");
   const lines = [];
   try {
-    const { tokens } = highlighter.codeToTokens(code, { lang, theme: "catppuccin-mocha" });
-    for (const lineTokens of tokens) {
-      lines.push({
-        html: lineTokens.map((t) => `<span style="color:${t.color}">${escapeHtml(t.content)}</span>`).join(""),
-        text: lineTokens.map((t) => t.content).join(""),
-      });
+    const { tokens } = highlighter.codeToTokens(code, { lang, theme: THEME });
+    // Markdown cells are `/* ... */` block comments; highlight their body as markdown so the demo
+    // matches what the injected grammar shows in the editor.
+    let inMarkdown = false;
+    for (let i = 0; i < tokens.length; i++) {
+      const text = rawLines[i] ?? "";
+      const open = MARKDOWN_OPEN.test(text);
+      const close = MARKDOWN_CLOSE.test(text);
+      if (open) inMarkdown = true;
+      if (inMarkdown && !open && !close) {
+        const md = highlighter.codeToTokens(text, { lang: "markdown", theme: THEME });
+        lines.push({ html: lineHtml(md.tokens[0] ?? []), text });
+      } else {
+        lines.push({ html: lineHtml(tokens[i]), text });
+      }
+      if (close) inMarkdown = false;
     }
   } catch (err) {
     console.error(`highlight failed for ${key}:`, err.message);
-    for (const line of code.split("\n")) lines.push({ html: escapeHtml(line), text: line });
+    for (const line of rawLines) lines.push({ html: escapeHtml(line), text: line });
   }
   highlighted[key] = { lines };
 }

@@ -2,7 +2,7 @@
   "name": "denote",
   "displayName": "Denote",
   "description": "Interactive window for JavaScript/TypeScript using the Deno Jupyter kernel, with `// %%` cell markers",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "denote",
   "license": "MIT",
   "icon": "icon.png",
@@ -22,6 +22,16 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "grammars": [
+      {
+        "scopeName": "markdown.denote.cell",
+        "path": "./syntaxes/denote-markdown-cell.tmLanguage.json",
+        "injectTo": ["source.ts", "source.tsx", "source.js", "source.js.jsx"],
+        "embeddedLanguages": {
+          "meta.embedded.block.markdown.denote": "markdown"
+        }
+      }
+    ],
     "commands": [
       {
         "command": "denote.runCell",
@@ -165,8 +175,8 @@
         },
         "denote.cellMarker.markdownRegex": {
           "type": "string",
-          "default": "^//\\s*%%\\s*\\[markdown\\]",
-          "markdownDescription": "Regular expression that identifies a **markdown** cell marker."
+          "default": "^/\\*\\s*%%\\s*\\[markdown\\]",
+          "markdownDescription": "Regular expression that identifies a **markdown** cell opening marker. The cell is a `/* ... */` block comment so it stays valid TypeScript."
         },
         "denote.cellMarker.decorateCells": {
           "type": "string",

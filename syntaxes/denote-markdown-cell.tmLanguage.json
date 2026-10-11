@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "markdown.denote.cell",
+  "injectionSelector": "L:source.ts, L:source.tsx, L:source.js, L:source.js.jsx",
+  "patterns": [
+    {
+      "begin": "^[ \\t]*/\\*[ \\t]*%%[ \\t]*\\[markdown\\][^\\n]*",
+      "beginCaptures": {
+        "0": { "name": "comment.block.denote" }
+      },
+      "end": "^[ \\t]*\\*/",
+      "endCaptures": {
+        "0": { "name": "comment.block.denote" }
+      },
+      "contentName": "meta.embedded.block.markdown.denote",
+      "patterns": [{ "include": "text.html.markdown" }]
+    }
+  ]
+}

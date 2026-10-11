@@ -33,7 +33,7 @@ export const outputs = {
           html:
             '<svg width="240" height="80" xmlns="http://www.w3.org/2000/svg">' +
             '<rect width="240" height="80" fill="#1f6feb"/>' +
-            '<text x="12" y="48" fill="white" font-size="24">Hello IW</text></svg>',
+            '<text x="12" y="48" fill="white" font-size="24">Hello Deno</text></svg>',
         },
       ],
     },

@@ -6,7 +6,7 @@ import { KernelManager } from "./kernelManager";
 import { DenoKernelController, BINARY_MIME } from "./notebookController";
 import { InteractiveWindowProvider } from "./interactiveWindow";
 import { initConfig, getConfig } from "./config";
-import { generateCellRangesFromDocument, stripFirstMarker, ICellRange } from "./cellMatcher";
+import { generateCellRangesFromDocument, stripFirstMarker, stripMarkdownTerminator, ICellRange } from "./cellMatcher";
 
 const JS_LANGS = ["javascript", "typescript", "javascriptreact", "typescriptreact"];
 
@@ -95,15 +95,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Insert a cell into the interactive window and run it through our controller.
   async function executeCell(document: vscode.TextDocument, cell: ICellRange): Promise<void> {
-    const code = stripFirstMarker(cellCode(document, cell), getConfig());
+    const isMarkdown = cell.cellType === "markdown";
+    let code = stripFirstMarker(cellCode(document, cell), getConfig());
+    if (isMarkdown) code = stripMarkdownTerminator(code);
     const notebookCell = await interactiveWindows.addCode(
       code,
       document.uri,
       cell.range.start.line,
       document.languageId,
-      cell.cellType === "markdown",
+      isMarkdown,
     );
-    if (cell.cellType === "code") {
+    if (!isMarkdown) {
       await controller.executeCell(notebookCell);
     }
   }
@@ -338,11 +340,12 @@ export function serializeNotebook(notebook: vscode.NotebookDocument): string {
 
 export function serializeSource(notebook: vscode.NotebookDocument): string {
   const marker = getConfig().defaultCellMarker;
+  const markdownOpen = `${marker.replace(/^\/\//, "/*")} [markdown]`;
   return notebook
     .getCells()
     .map((cell) =>
       cell.kind === vscode.NotebookCellKind.Markup
-        ? `${marker} [markdown]\n${cell.document.getText()}`
+        ? `${markdownOpen}\n${cell.document.getText()}\n*/`
         : `${marker}\n${cell.document.getText()}`,
     )
     .join("\n\n");

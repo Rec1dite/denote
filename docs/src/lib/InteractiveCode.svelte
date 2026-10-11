@@ -1,5 +1,5 @@
 <script>
-  import { buildCells, ansiToHtml, copyText } from "./interactive.js";
+  import { buildCells, ansiToHtml, markdownToHtml, copyText } from "./interactive.js";
   import Icon from "./Icon.svelte";
   import ProgressBar from "./ProgressBar.svelte";
 
@@ -72,29 +72,38 @@
       <div class="terminal-body">
         {#each executed as entry (entry.id)}
           <div class="exec">
-            <div class="exec-head">
-              <span class="ok"><Icon name="check" size={13} /></span>
-              <code class="exec-code">{@html entry.cell.headerHtml}</code>
-              <span class="ellipsis">…</span>
-              <button class="exec-clear" on:click={() => clearOne(entry.id)} title="Clear output">
-                <Icon name="trash" size={13} />
-              </button>
-            </div>
-            <div class="exec-out">
-              {#each entry.cell.output.blocks as block}
-                {#if block.type === "image"}
-                  <img class="out-img" src={block.src} alt={block.alt ?? ""} />
-                {:else if block.type === "html"}
-                  <div class="out-html">{@html block.html}</div>
-                {:else if block.type === "markdown"}
-                  <pre class="out md">{block.text}</pre>
-                {:else if block.type === "progress"}
-                  <ProgressBar width={block.width} />
-                {:else}
-                  <pre class="out {block.type === "error" ? "error" : block.type}">{@html ansiToHtml(block.text)}</pre>
-                {/if}
-              {/each}
-            </div>
+            {#if entry.cell.kind === "markdown"}
+              <div class="exec-md">
+                <div class="out markdown">{@html entry.cell.markdownHtml}</div>
+                <button class="exec-clear" on:click={() => clearOne(entry.id)} title="Clear output">
+                  <Icon name="trash" size={13} />
+                </button>
+              </div>
+            {:else}
+              <div class="exec-head">
+                <span class="ok"><Icon name="check" size={13} /></span>
+                <code class="exec-code">{@html entry.cell.headerHtml}</code>
+                <span class="ellipsis">…</span>
+                <button class="exec-clear" on:click={() => clearOne(entry.id)} title="Clear output">
+                  <Icon name="trash" size={13} />
+                </button>
+              </div>
+              <div class="exec-out">
+                {#each entry.cell.output.blocks as block}
+                  {#if block.type === "image"}
+                    <img class="out-img" src={block.src} alt={block.alt ?? ""} />
+                  {:else if block.type === "html"}
+                    <div class="out-html">{@html block.html}</div>
+                  {:else if block.type === "markdown"}
+                    <div class="out markdown">{@html markdownToHtml(block.text)}</div>
+                  {:else if block.type === "progress"}
+                    <ProgressBar width={block.width} />
+                  {:else}
+                    <pre class="out {block.type === "error" ? "error" : block.type}">{@html ansiToHtml(block.text)}</pre>
+                  {/if}
+                {/each}
+              </div>
+            {/if}
           </div>
         {/each}
       </div>

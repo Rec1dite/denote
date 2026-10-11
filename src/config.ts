@@ -18,7 +18,7 @@ export interface DenoteConfig {
 }
 
 const FALLBACK_CODE_REGEX = "^//\\s*%%";
-const FALLBACK_MARKDOWN_REGEX = "^//\\s*%%\\s*\\[markdown\\]";
+const FALLBACK_MARKDOWN_REGEX = "^/\\*\\s*%%\\s*\\[markdown\\]";
 
 function compile(value: string, fallback: string): RegExp {
   try {

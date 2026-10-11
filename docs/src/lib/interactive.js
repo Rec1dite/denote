@@ -1,30 +1,93 @@
 // Utilities for the interactive code demo (cell detection, ANSI rendering).
 
 const CELL_MARKER = /^\s*\/\/\s*%%/;
+const MARKDOWN_MARKER = /^\s*\/\*\s*%%\s*\[markdown\]/;
+const MARKDOWN_TERMINATOR = /^\s*\*\/\s*$/;
 
 export function isCellMarker(text) {
-  return CELL_MARKER.test(text);
+  return CELL_MARKER.test(text) || MARKDOWN_MARKER.test(text);
+}
+
+export function isMarkdownMarker(text) {
+  return MARKDOWN_MARKER.test(text);
+}
+
+export function isMarkdownTerminator(text) {
+  return MARKDOWN_TERMINATOR.test(text);
 }
 
 // Splits highlighted lines into cells (matching the extension's `// %%` markers) and pairs each
-// cell with its canned output. Each cell keeps the highlighted HTML of its first code line.
+// cell with its canned output. Code cells keep the highlighted HTML of their first line; markdown
+// cells keep their rendered markdown.
 export function buildCells(lines, outputs = []) {
   const cells = [];
   let current = null;
   for (let i = 0; i < lines.length; i++) {
     if (isCellMarker(lines[i].text)) {
-      current = { start: i, code: [], output: outputs[cells.length] ?? { blocks: [] } };
+      current = {
+        start: i,
+        kind: isMarkdownMarker(lines[i].text) ? "markdown" : "code",
+        code: [],
+        output: outputs[cells.length] ?? { blocks: [] },
+      };
       cells.push(current);
       continue;
     }
-    if (current) current.code.push(lines[i]);
+    if (!current) continue;
+    if (current.kind === "markdown" && isMarkdownTerminator(lines[i].text)) {
+      current = null;
+      continue;
+    }
+    current.code.push(lines[i]);
   }
   for (const cell of cells) {
     const first = cell.code.find((line) => line.text.trim().length > 0);
     cell.header = first ? first.text.trim() : "";
     cell.headerHtml = first ? first.html : "";
+    if (cell.kind === "markdown") {
+      cell.markdownHtml = markdownToHtml(cell.code.map((line) => line.text).join("\n"));
+    }
   }
   return cells;
+}
+
+// Minimal Markdown renderer for the demo (headings, emphasis, inline code, lists, paragraphs).
+export function markdownToHtml(text) {
+  const inline = (value) =>
+    escapeHtml(value)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  const out = [];
+  let inList = false;
+  const closeList = () => {
+    if (inList) {
+      out.push("</ul>");
+      inList = false;
+    }
+  };
+  for (const line of text.split("\n")) {
+    const heading = line.match(/^\s*(#{1,6})\s+(.*?)\s*$/);
+    const item = line.match(/^\s*[-*+]\s+(.*)$/);
+    if (heading) {
+      closeList();
+      const level = heading[1].length;
+      out.push(`<h${level}>${inline(heading[2])}</h${level}>`);
+    } else if (item) {
+      if (!inList) {
+        out.push("<ul>");
+        inList = true;
+      }
+      out.push(`<li>${inline(item[1])}</li>`);
+    } else if (line.trim() === "") {
+      closeList();
+    } else {
+      closeList();
+      out.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  closeList();
+  return out.join("");
 }
 
 const ANSI_COLORS = {
