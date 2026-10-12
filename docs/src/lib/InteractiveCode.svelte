@@ -16,8 +16,16 @@
   let copied = false;
   let copyTimer;
 
+  // A cell output may be a function; call it at run time so stateful demos accumulate.
   function run(indices) {
-    executed = [...executed, ...indices.map((index) => ({ id: nextId++, cell: cells[index] }))];
+    executed = [
+      ...executed,
+      ...indices.map((index) => {
+        const cell = cells[index];
+        const output = typeof cell.output === "function" ? cell.output() : cell.output;
+        return { id: nextId++, cell: { ...cell, output } };
+      }),
+    ];
   }
   const runCell = (i) => run([i]);
   const runAll = () => run(cells.map((_, i) => i));

@@ -1,5 +1,9 @@
 // Canned outputs for the interactive demo, one entry per cell in the matching snippet.
-// A cell output is `{ blocks: [...] }` where a block is stdout/stderr/error/image/html/markdown.
+// A cell output is `{ blocks: [...] }` where a block is stdout/stderr/error/image/html/markdown,
+// or a function that performs the cell's effect and returns its output (for stateful demos).
+
+// Shared state for the `state` demo, so repeated runs accumulate like the real kernel.
+let shared = 41;
 
 export const outputs = {
   markers: [
@@ -8,8 +12,14 @@ export const outputs = {
   ],
   runCell: [{ blocks: [{ type: "stdout", text: "hello from a cell\n" }] }],
   state: [
-    { blocks: [] },
-    { blocks: [{ type: "stdout", text: "shared + 1 = 42\n" }] },
+    () => {
+      shared = 41;
+      return { blocks: [] };
+    },
+    () => {
+      shared += 1;
+      return { blocks: [{ type: "stdout", text: `shared = ${shared}\n` }] };
+    },
   ],
   errors: [
     { blocks: [{ type: "error", text: "Error: something went wrong" }] },

@@ -2,18 +2,16 @@
   import { onMount, onDestroy } from "svelte";
 
   export let width = 40;
-  export let duration = 1400;
 
   let progress = 0;
   let timer;
 
+  // Mirrors the snippet: a random step every 100ms until the bar fills.
   onMount(() => {
-    const start = Date.now();
     timer = setInterval(() => {
-      const t = Math.min(1, (Date.now() - start) / duration);
-      progress = Math.round(t * 100);
-      if (t >= 1) clearInterval(timer);
-    }, 50);
+      progress = Math.min(100, progress + Math.random() * 8);
+      if (progress >= 100) clearInterval(timer);
+    }, 100);
   });
 
   onDestroy(() => clearInterval(timer));
@@ -22,4 +20,4 @@
   $: bar = "█".repeat(filled) + "=".repeat(width - filled);
 </script>
 
-<pre class="out progress">{`[${bar}] ${progress}%`}</pre>
+<pre class="out progress">{`[${bar}] ${Math.floor(progress)}%`}</pre>

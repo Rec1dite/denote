@@ -23,10 +23,11 @@ export const runCell = join([
 
 export const state = join([
   "// %%",
-  "const shared = 41;",
+  "let shared = 41;",
   "",
   "// %%",
-  "console.log(\"shared + 1 =\", shared + 1); // 42",
+  "shared += 1;",
+  "console.log(\"shared =\", shared);",
 ]);
 
 export const errors = join([
